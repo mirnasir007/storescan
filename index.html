@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>store scan</title>
+    <title>Smart Warehouse Scanner</title>
     <link rel="icon" type="image/png" href="logo.png">
     
     <!-- PWA Settings -->
@@ -30,20 +30,25 @@
         }
         .sheet-header {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 2fr 1fr 1fr 1fr 1fr 1fr; /* 10 Columns */
+            /* Adjusted column widths: Gave more space to NAME (2fr) and SAL_BARCODE (1.3fr) */
+            grid-template-columns: 1fr 1fr 1fr 1fr 2fr 1fr 0.8fr 1fr 1.3fr 1fr; 
             background-color: #f1f5f9;
             border-bottom: 2px solid #cbd5e1;
-            font-size: 0.75rem;
+            font-size: 0.70rem; /* Slightly smaller to fit text */
             font-weight: 700;
             color: #475569;
             text-align: center;
         }
         .sheet-cell {
-            padding: 8px 4px;
+            padding: 6px 2px;
             border-right: 1px solid #cbd5e1;
-            white-space: nowrap;
+            white-space: normal; /* Key Change: Allow text to wrap */
+            word-wrap: break-word;
             overflow: hidden;
-            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2; /* Better spacing for wrapped text */
         }
         .sheet-cell:last-child { border-right: none; }
 
