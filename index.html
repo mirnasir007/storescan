@@ -6,6 +6,7 @@
     <title>Store Scanner</title>
     <link rel="icon" type="image/png" href="logo.png">
     
+    
     <!-- PWA Settings -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +17,11 @@
     <!-- Dynamic Manifest for PWA -->
     <link rel="manifest" id="my-manifest">
 
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for Excel Reading -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overscroll-behavior-y: contain; }
@@ -30,11 +35,10 @@
         }
         .sheet-header {
             display: grid;
-            /* Adjusted column widths: Gave more space to NAME (2fr) and SAL_BARCODE (1.3fr) */
             grid-template-columns: 1fr 1fr 1fr 1fr 2fr 1fr 0.8fr 1fr 1.3fr 1fr; 
             background-color: #f1f5f9;
             border-bottom: 2px solid #cbd5e1;
-            font-size: 0.70rem; /* Slightly smaller to fit text */
+            font-size: 0.70rem;
             font-weight: 700;
             color: #475569;
             text-align: center;
@@ -42,17 +46,16 @@
         .sheet-cell {
             padding: 6px 2px;
             border-right: 1px solid #cbd5e1;
-            white-space: normal; /* Key Change: Allow text to wrap */
+            white-space: normal;
             word-wrap: break-word;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            line-height: 1.2; /* Better spacing for wrapped text */
+            line-height: 1.2;
         }
         .sheet-cell:last-child { border-right: none; }
 
-        /* Textarea that looks like a grid */
         .sheet-input {
             width: 100%;
             height: 300px;
@@ -60,25 +63,18 @@
             padding: 0;
             font-family: 'Courier New', monospace;
             font-size: 13px;
-            line-height: 24px; /* Matches grid background size */
+            line-height: 24px;
             resize: none;
             outline: none;
             white-space: pre;
             overflow-x: auto;
-            
-            /* CSS Trick for Grid Lines */
             background-image: linear-gradient(#e2e8f0 1px, transparent 1px);
-            background-size: 100% 24px; /* Row height */
+            background-size: 100% 24px;
             background-attachment: local;
             color: #334155;
             padding-left: 10px;
         }
 
-        /* Preview Table Styling */
-        .preview-table th { background-color: #e2e8f0; color: #334155; font-size: 0.75rem; }
-        .preview-table td { border: 1px solid #e2e8f0; padding: 4px 8px; font-size: 0.8rem; }
-        
-        /* Status Colors */
         .status-missing { background-color: #fee2e2; color: #991b1b; }
         .status-done { background-color: #dcfce7; color: #166534; }
         .status-extra { background-color: #fef9c3; color: #854d0e; }
@@ -86,20 +82,24 @@
 
         .hidden-section { display: none !important; }
 
-        /* Custom Modal Styles */
-        .modal-overlay {
-            background-color: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(2px);
-        }
+        .modal-overlay { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
 
-        /* Install Button Animation */
-        .install-pulse {
-            animation: pulse-border 2s infinite;
-        }
+        .install-pulse { animation: pulse-border 2s infinite; }
         @keyframes pulse-border {
             0% { box-shadow: 0 0 0 0 rgba(22, 101, 52, 0.7); }
             70% { box-shadow: 0 0 0 6px rgba(22, 101, 52, 0); }
             100% { box-shadow: 0 0 0 0 rgba(22, 101, 52, 0); }
+        }
+
+        /* File Upload Styles */
+        .file-drop-zone {
+            border: 2px dashed #3b82f6;
+            background-color: #eff6ff;
+            transition: all 0.3s;
+        }
+        .file-drop-zone:hover {
+            background-color: #dbeafe;
+            border-color: #2563eb;
         }
     </style>
 </head>
@@ -114,14 +114,12 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <!-- Install Button (Hidden by default) -->
             <button id="installAppBtn" onclick="installPWA()" class="hidden-section flex items-center gap-1 bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-green-700 transition install-pulse">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 INSTALL
             </button>
-            
             <button onclick="showResetModal()" class="text-sm text-red-600 hover:text-red-800 font-medium px-3 py-1 border border-red-200 rounded hover:bg-red-50 transition">
                 Reset
             </button>
@@ -132,16 +130,40 @@
     <main class="flex-grow overflow-hidden flex flex-col p-4 max-w-7xl mx-auto w-full">
 
         <!-- STEP 1: EXCEL INPUT & PREVIEW -->
-        <div id="setupSection" class="flex flex-col h-full gap-4">
+        <div id="setupSection" class="flex flex-col h-full gap-4 overflow-y-auto">
             
-            <!-- Instructions -->
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded text-sm text-blue-800">
-                <strong>Step 1:</strong> Excel theke data copy kore nicher box-e paste korun.
+            <!-- Option 1: File Upload (New) -->
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h2 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                    Option 1: Upload Excel File (Recommended for Large Data)
+                </h2>
+                <div class="relative group">
+                    <input type="file" id="excelFile" accept=".xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileUpload(this)">
+                    <div class="file-drop-zone rounded-lg p-6 text-center">
+                        <div id="uploadText">
+                            <p class="text-blue-600 font-semibold">Click to select Excel file</p>
+                            <p class="text-xs text-gray-500 mt-1">.xlsx or .xls files supported</p>
+                        </div>
+                        <div id="uploadSpinner" class="hidden-section">
+                            <p class="text-gray-600 font-bold animate-pulse">Processing file...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Spreadsheet Input View -->
-            <div class="sheet-container shadow-md flex flex-col flex-grow relative">
-                <!-- Header Row (Visual Only) -->
+            <div class="flex items-center gap-4 text-gray-400">
+                <div class="h-px bg-gray-300 flex-1"></div>
+                <span class="text-xs font-bold uppercase">OR</span>
+                <div class="h-px bg-gray-300 flex-1"></div>
+            </div>
+
+            <!-- Option 2: Copy Paste (Existing) -->
+            <div class="sheet-container shadow-md flex flex-col flex-grow relative min-h-[300px]">
+                <div class="bg-gray-50 px-3 py-2 border-b border-gray-200 text-xs font-bold text-gray-600">
+                    Option 2: Paste Data (For quick checks)
+                </div>
+                <!-- Header Row -->
                 <div class="sheet-header">
                     <div class="sheet-cell">RECEIVE FROM</div>
                     <div class="sheet-cell">DATE</div>
@@ -151,20 +173,31 @@
                     <div class="sheet-cell">SALE PRICE</div>
                     <div class="sheet-cell">RQTY</div>
                     <div class="sheet-cell">AMOUNT</div>
-                    <div class="sheet-cell bg-green-50">SAL_BARCODE (QTY)</div>
+                    <div class="sheet-cell bg-green-50">QTY</div>
                     <div class="sheet-cell">BARCODE</div>
                 </div>
 
                 <!-- Input Area -->
                 <div class="relative flex-grow bg-white overflow-hidden">
                     <textarea id="pasteArea" class="sheet-input w-full h-full" 
-                        placeholder="Excel data paste korun..."
+                        placeholder="Paste Excel data here..."
                         oninput="handleInputPreview()"></textarea>
+                    
+                    <!-- Overlay when File is Uploaded to prevent confusion -->
+                    <div id="fileLoadedOverlay" class="hidden-section absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-10">
+                        <div class="bg-green-100 text-green-800 p-4 rounded-lg shadow text-center">
+                            <h3 class="font-bold text-lg">Excel File Loaded Successfully!</h3>
+                            <p class="text-sm mt-1">Manual pasting is disabled when file is loaded.</p>
+                            <button onclick="clearFileUpload()" class="mt-3 text-xs bg-white border border-green-300 px-3 py-1 rounded hover:bg-gray-50 text-red-500">
+                                Remove File & Enable Paste
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Footer Actions -->
                 <div class="p-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
-                    <div id="previewStats" class="text-xs md:text-sm font-medium text-gray-600">Waiting...</div>
+                    <div id="previewStats" class="text-xs md:text-sm font-medium text-gray-600">Waiting for data...</div>
                     <button onclick="startScanning()" id="startBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded shadow font-bold disabled:opacity-50 disabled:cursor-not-allowed transition text-sm md:text-base" disabled>
                         Verify & Scan
                     </button>
@@ -174,8 +207,7 @@
 
         <!-- STEP 2: SCANNING INTERFACE (Hidden Initially) -->
         <div id="scanSection" class="hidden-section flex flex-col h-full">
-            
-            <!-- Scanner Box -->
+            <!-- Same Scanning UI as before -->
             <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-4 flex flex-col md:flex-row gap-4 items-center sticky top-0 z-10">
                 <div class="w-full md:w-3/5">
                     <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Scan Barcode</label>
@@ -188,7 +220,6 @@
                     <div id="lastScanMsg" class="h-6 mt-1 text-sm font-semibold text-gray-600 truncate">Ready...</div>
                 </div>
 
-                <!-- Dashboard -->
                 <div class="w-full md:w-2/5 flex gap-2">
                     <div class="flex-1 bg-blue-50 p-2 rounded text-center border border-blue-100">
                         <div class="text-[10px] md:text-xs text-blue-600 font-bold uppercase">Total</div>
@@ -205,7 +236,6 @@
                 </div>
             </div>
 
-            <!-- Data Table -->
             <div class="bg-white border border-gray-200 rounded-lg shadow-sm flex-grow overflow-hidden flex flex-col">
                 <div class="overflow-x-auto overflow-y-auto h-full">
                     <table class="w-full text-left border-collapse">
@@ -218,9 +248,7 @@
                                 <th class="p-3 text-center text-xs font-bold text-gray-500 uppercase border-b">Stat</th>
                             </tr>
                         </thead>
-                        <tbody id="scanTableBody" class="divide-y divide-gray-100">
-                            <!-- Rows -->
-                        </tbody>
+                        <tbody id="scanTableBody" class="divide-y divide-gray-100"></tbody>
                     </table>
                 </div>
             </div>
@@ -232,81 +260,39 @@
 
     </main>
 
-    <!-- CUSTOM CONFIRMATION MODAL -->
+    <!-- Modal -->
     <div id="resetModal" class="hidden-section fixed inset-0 z-50 flex items-center justify-center modal-overlay p-4">
-        <div class="bg-white rounded-lg shadow-2xl w-full max-w-sm p-6 transform transition-all scale-100">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-sm p-6">
             <div class="flex flex-col items-center text-center">
-                <div class="bg-red-100 p-3 rounded-full mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Clear All Data?</h3>
-                <p class="text-gray-500 text-sm mb-6">Are you sure you want to reset? All scanned progress and pasted data will be lost permanently.</p>
-                
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Reset Data?</h3>
+                <p class="text-gray-500 text-sm mb-6">Are you sure? All progress will be lost.</p>
                 <div class="flex gap-3 w-full">
-                    <button onclick="closeResetModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 py-2.5 rounded font-semibold transition">
-                        Cancel
-                    </button>
-                    <button onclick="confirmReset()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded font-semibold shadow-lg transition">
-                        Yes, Reset
-                    </button>
+                    <button onclick="closeResetModal()" class="flex-1 bg-gray-100 py-2.5 rounded font-semibold">Cancel</button>
+                    <button onclick="confirmReset()" class="flex-1 bg-red-600 text-white py-2.5 rounded font-semibold">Yes, Reset</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- PWA SETUP START ---
-        // Dynamically create the manifest for PWA installation
+        // PWA Setup
         const manifestData = {
-            "name": "Warehouse Scanner",
-            "short_name": "Scanner",
-            "start_url": ".",
-            "display": "standalone",
-            "background_color": "#ffffff",
-            "theme_color": "#166534",
-            "orientation": "portrait",
-            "icons": [
-                {
-                    "src": "https://cdn-icons-png.flaticon.com/512/2402/2402229.png",
-                    "sizes": "192x192",
-                    "type": "image/png"
-                },
-                {
-                    "src": "https://cdn-icons-png.flaticon.com/512/2402/2402229.png",
-                    "sizes": "512x512",
-                    "type": "image/png"
-                }
-            ]
+            "name": "Warehouse Scanner", "short_name": "Scanner", "start_url": ".", "display": "standalone",
+            "background_color": "#ffffff", "theme_color": "#166534", "orientation": "portrait",
+            "icons": [{"src": "https://cdn-icons-png.flaticon.com/512/2402/2402229.png", "sizes": "192x192", "type": "image/png"}]
         };
-        const stringManifest = JSON.stringify(manifestData);
-        const blob = new Blob([stringManifest], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(blob);
-        document.querySelector('#my-manifest').setAttribute('href', manifestURL);
+        document.querySelector('#my-manifest').setAttribute('href', URL.createObjectURL(new Blob([JSON.stringify(manifestData)], {type: 'application/json'})));
 
-        // Install Button Logic
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            const btn = document.getElementById('installAppBtn');
-            btn.classList.remove('hidden-section');
+            e.preventDefault(); deferredPrompt = e;
+            document.getElementById('installAppBtn').classList.remove('hidden-section');
         });
-
         async function installPWA() {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    document.getElementById('installAppBtn').classList.add('hidden-section');
-                }
-                deferredPrompt = null;
-            }
+            if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; document.getElementById('installAppBtn').classList.add('hidden-section'); }
         }
-        // --- PWA SETUP END ---
 
-        // Audio Setup
+        // App Logic
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function beep(isSuccess) {
             if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -314,17 +300,17 @@
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            
             osc.type = isSuccess ? 'sine' : 'sawtooth';
             osc.frequency.value = isSuccess ? 1000 : 200;
             gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            osc.start();
-            osc.stop(audioCtx.currentTime + (isSuccess ? 0.1 : 0.3));
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         }
 
-        // State
-        let parsedProducts = []; // The clean list used for scanning
-        let barcodeIndexMap = {}; // Fast lookup
+        let parsedProducts = [];
+        let barcodeIndexMap = {};
+        
+        // This variable will hold rows from Excel OR Textarea
+        let globalRowData = null; 
 
         // Column Indices
         const COL_BARCODE_MAIN = 3;
@@ -333,60 +319,100 @@
         const COL_CODE_ALT2 = 6;
         const COL_QTY = 8;
 
-        // --- Logic: Parse & Preview ---
-        function handleInputPreview() {
-            const raw = document.getElementById('pasteArea').value;
-            const rows = raw.split('\n');
-            let validCount = 0;
-            
-            // Simple validation to enable button
-            if (rows.length > 1) {
-                const hasData = rows.some(r => {
-                    const c = r.split('\t');
-                    return c.length > 4 && c[COL_NAME] && c[COL_NAME].trim() !== "";
-                });
+        // --- NEW: Excel File Handling ---
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if(!file) return;
+
+            document.getElementById('uploadText').classList.add('hidden-section');
+            document.getElementById('uploadSpinner').classList.remove('hidden-section');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 
-                if (hasData) {
-                    document.getElementById('startBtn').disabled = false;
-                    document.getElementById('startBtn').classList.remove('opacity-50', 'cursor-not-allowed');
-                    
-                    validCount = rows.filter(r => r.split('\t').length > 4).length;
-                    document.getElementById('previewStats').innerText = `Detected ${validCount} rows.`;
-                    document.getElementById('previewStats').className = "text-sm font-bold text-green-600";
-                    return;
-                }
-            }
-            
+                // Convert to Array of Arrays (mimics the structure of split('\t'))
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+                
+                // Store in global variable
+                globalRowData = jsonData;
+
+                // UI Updates
+                document.getElementById('uploadText').innerHTML = `<p class="text-green-600 font-bold">✔ ${file.name}</p><p class="text-xs text-gray-600">${jsonData.length} rows loaded</p>`;
+                document.getElementById('uploadText').classList.remove('hidden-section');
+                document.getElementById('uploadSpinner').classList.add('hidden-section');
+                
+                // Disable Paste Area
+                document.getElementById('fileLoadedOverlay').classList.remove('hidden-section');
+                
+                // Enable Start Button
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('previewStats').innerText = `Ready to import ${jsonData.length} rows from file.`;
+                document.getElementById('previewStats').className = "text-sm font-bold text-green-600";
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function clearFileUpload() {
+            document.getElementById('excelFile').value = '';
+            globalRowData = null;
+            document.getElementById('fileLoadedOverlay').classList.add('hidden-section');
+            document.getElementById('uploadText').innerHTML = `<p class="text-blue-600 font-semibold">Click to select Excel file</p><p class="text-xs text-gray-500 mt-1">.xlsx or .xls files supported</p>`;
             document.getElementById('startBtn').disabled = true;
             document.getElementById('previewStats').innerText = "Waiting for data...";
             document.getElementById('previewStats').className = "text-sm font-medium text-gray-600";
         }
 
-        function startScanning() {
+        // --- Existing: Textarea Handling ---
+        function handleInputPreview() {
             const raw = document.getElementById('pasteArea').value;
-            if(!raw) return;
-
             const rows = raw.split('\n');
+            if (rows.length > 1) {
+                // If textarea is used, globalRowData is derived from it later
+                globalRowData = null; 
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('previewStats').innerText = `Detected ${rows.length} rows (Text).`;
+                document.getElementById('previewStats').className = "text-sm font-bold text-green-600";
+            } else {
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('previewStats').innerText = "Waiting for data...";
+                document.getElementById('previewStats').className = "text-sm font-medium text-gray-600";
+            }
+        }
+
+        function startScanning() {
+            let dataRows = [];
+
+            // Determine Source: File or Textarea
+            if (globalRowData) {
+                dataRows = globalRowData; // From Excel
+            } else {
+                // From Textarea
+                const raw = document.getElementById('pasteArea').value;
+                if(!raw) return;
+                // Textarea rows need splitting by tab to match Excel array format
+                dataRows = raw.split('\n').map(row => row.split('\t'));
+            }
+
             const tempMap = {};
             let skipped = 0;
 
-            rows.forEach((row, idx) => {
-                if(!row.trim()) return;
-                const cols = row.split('\t');
+            dataRows.forEach((cols, idx) => {
+                // Excel JSON might result in empty rows or limited cols
+                if(!cols || cols.length <= COL_NAME) { skipped++; return; }
 
-                if(cols.length <= COL_NAME) { skipped++; return; }
-
-                const name = cols[COL_NAME]?.trim();
-                let mainCode = cols[COL_BARCODE_MAIN]?.trim();
-                const alt1 = cols[COL_CODE_ALT1]?.trim();
-                const alt2 = cols[COL_CODE_ALT2]?.trim();
+                const name = cols[COL_NAME]?.toString().trim();
+                let mainCode = cols[COL_BARCODE_MAIN]?.toString().trim();
+                const alt1 = cols[COL_CODE_ALT1]?.toString().trim();
+                const alt2 = cols[COL_CODE_ALT2]?.toString().trim();
                 
-                let qtyStr = cols[COL_QTY]?.trim() || "1";
+                let qtyStr = cols[COL_QTY]?.toString().trim() || "1";
                 let qty = parseFloat(qtyStr.replace(/,/g, ''));
                 if(isNaN(qty)) qty = 1;
 
-                if(name === "NAME" || name.includes("Challan Total")) return;
-                if(!name) { skipped++; return; }
+                if(!name || name === "NAME" || name.includes("Challan Total")) return;
 
                 let codes = [];
                 if(mainCode) codes.push(mainCode);
@@ -432,7 +458,6 @@
             setTimeout(() => document.getElementById('scanInput').focus(), 200);
         }
 
-        // --- Logic: Scanning ---
         function renderScanTable() {
             const tbody = document.getElementById('scanTableBody');
             tbody.innerHTML = '';
@@ -443,21 +468,20 @@
                 tQty += p.targetQty;
                 sQty += p.scannedQty;
 
-                let badge = '';
-                let rowClass = '';
+                let badge = '', rowClass = '';
                 const diff = p.targetQty - p.scannedQty;
 
                 if(p.scannedQty === 0) {
-                    badge = '<span class="status-badge status-missing">Mis</span>';
+                    badge = '<span class="status-missing px-2 py-1 rounded text-xs font-bold">Mis</span>';
                     rowClass = 'bg-white';
                 } else if (p.scannedQty < p.targetQty) {
-                    badge = `<span class="status-badge status-partial">Less(${diff})</span>`;
+                    badge = `<span class="status-partial px-2 py-1 rounded text-xs font-bold">Short(${diff})</span>`;
                     rowClass = 'bg-orange-50';
                 } else if (p.scannedQty === p.targetQty) {
-                    badge = '<span class="status-badge status-done">OK</span>';
+                    badge = '<span class="status-done px-2 py-1 rounded text-xs font-bold">OK</span>';
                     rowClass = 'bg-green-50';
                 } else {
-                    badge = `<span class="status-badge status-extra">+${Math.abs(diff)}</span>`;
+                    badge = `<span class="status-extra px-2 py-1 rounded text-xs font-bold">+${Math.abs(diff)}</span>`;
                     rowClass = 'bg-yellow-100';
                 }
 
@@ -489,7 +513,6 @@
         }
 
         const scanInput = document.getElementById('scanInput');
-        
         scanInput.addEventListener('keydown', (e) => {
             if(e.key === 'Enter') {
                 const val = scanInput.value.trim().toUpperCase();
@@ -500,8 +523,8 @@
 
         document.body.addEventListener('click', (e) => {
             if(!document.getElementById('scanSection').classList.contains('hidden-section') && 
-               !document.getElementById('resetModal').classList.contains('hidden-section') === false && 
-               e.target.tagName !== 'BUTTON') {
+               !document.getElementById('resetModal').classList.contains('hidden-section') && 
+               e.target.tagName !== 'BUTTON' && e.target.type !== 'file') {
                 scanInput.focus();
             }
         });
@@ -509,15 +532,12 @@
         function processScan(code) {
             const idx = barcodeIndexMap[code];
             const msgEl = document.getElementById('lastScanMsg');
-
             if(idx !== undefined) {
                 const prod = parsedProducts[idx];
                 prod.scannedQty++;
                 beep(true);
                 msgEl.innerHTML = `<span class="text-green-600">✔ Found: ${prod.name}</span>`;
-                
                 renderScanTable();
-                
                 const row = document.getElementById(`prod-${idx}`);
                 row.scrollIntoView({behavior: 'smooth', block: 'center'});
                 row.classList.add('brightness-95'); 
@@ -532,18 +552,9 @@
             document.getElementById('setupSection').classList.remove('hidden-section');
             document.getElementById('scanSection').classList.add('hidden-section');
         }
-
-        function showResetModal() {
-            document.getElementById('resetModal').classList.remove('hidden-section');
-        }
-
-        function closeResetModal() {
-            document.getElementById('resetModal').classList.add('hidden-section');
-        }
-
-        function confirmReset() {
-            location.reload();
-        }
+        function showResetModal() { document.getElementById('resetModal').classList.remove('hidden-section'); }
+        function closeResetModal() { document.getElementById('resetModal').classList.add('hidden-section'); }
+        function confirmReset() { location.reload(); }
     </script>
 </body>
 </html>
