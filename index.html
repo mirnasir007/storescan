@@ -3,29 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Store Scanner</title>
+    <title>Store Scanner Pro V3</title>
     <link rel="icon" type="image/png" href="logo.png">
     
-    <!-- PWA Settings -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#166534">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2402/2402229.png">
     
-    <!-- Dynamic Manifest for PWA -->
-    <link rel="manifest" id="my-manifest">
-
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS for Excel Reading -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overscroll-behavior-y: contain; }
         
-        /* Excel-like Grid Styling */
         .sheet-container {
             border: 1px solid #e2e8f0;
             background: white;
@@ -80,17 +72,8 @@
         .status-partial { background-color: #ffedd5; color: #9a3412; }
 
         .hidden-section { display: none !important; }
-
         .modal-overlay { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
 
-        .install-pulse { animation: pulse-border 2s infinite; }
-        @keyframes pulse-border {
-            0% { box-shadow: 0 0 0 0 rgba(22, 101, 52, 0.7); }
-            70% { box-shadow: 0 0 0 6px rgba(22, 101, 52, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(22, 101, 52, 0); }
-        }
-
-        /* File Upload Styles */
         .file-drop-zone {
             border: 2px dashed #3b82f6;
             background-color: #eff6ff;
@@ -100,49 +83,52 @@
             background-color: #dbeafe;
             border-color: #2563eb;
         }
+        
+        tr { transition: background-color 0.3s; }
+        .row-highlight { animation: highlight-pulse 1s; }
+        @keyframes highlight-pulse {
+            0% { background-color: #86efac; }
+            100% { background-color: transparent; }
+        }
+
+        /* Custom Scrollbar for Dropdown */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="h-screen flex flex-col relative">
+<body class="h-screen flex flex-col relative" onclick="closeDropdownOnClick(event)">
 
-    <!-- Navbar -->
     <nav class="bg-white border-b border-gray-200 px-4 py-3 flex justify-between items-center shadow-sm z-20 w-full">
         <div class="flex items-center gap-2">
             <div class="bg-green-600 text-white p-1.5 rounded font-bold text-xl">XL</div>
             <div>
-                <h1 class="font-bold text-gray-800 text-lg leading-tight">Scanner</h1>
+                <h1 class="font-bold text-gray-800 text-lg leading-tight">Store Scanner</h1>
             </div>
         </div>
-        <div class="flex gap-2">
-            <button id="installAppBtn" onclick="installPWA()" class="hidden-section flex items-center gap-1 bg-green-600 text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-green-700 transition install-pulse">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                INSTALL
-            </button>
+        <div>
             <button onclick="showResetModal()" class="text-sm text-red-600 hover:text-red-800 font-medium px-3 py-1 border border-red-200 rounded hover:bg-red-50 transition">
                 Reset
             </button>
         </div>
     </nav>
 
-    <!-- Main Content: CHANGED to w-full, removed max-w-7xl -->
     <main class="flex-grow overflow-hidden flex flex-col p-2 md:p-4 w-full">
 
-        <!-- STEP 1: EXCEL INPUT & PREVIEW -->
         <div id="setupSection" class="flex flex-col h-full gap-4 overflow-y-auto">
             
-            <!-- Option 1: File Upload (New) -->
             <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                 <h2 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
-                    Option 1: Upload Excel File (Recommended for Large Data)
+                    Step 1: Upload Excel (Recommended)
                 </h2>
                 <div class="relative group">
                     <input type="file" id="excelFile" accept=".xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileUpload(this)">
                     <div class="file-drop-zone rounded-lg p-6 text-center">
                         <div id="uploadText">
                             <p class="text-blue-600 font-semibold">Click to select Excel file</p>
-                            <p class="text-xs text-gray-500 mt-1">.xlsx or .xls files supported</p>
+                            <p class="text-xs text-gray-500 mt-1">.xlsx or .xls (Must contain Challan in Column C)</p>
                         </div>
                         <div id="uploadSpinner" class="hidden-section">
                             <p class="text-gray-600 font-bold animate-pulse">Processing file...</p>
@@ -157,44 +143,38 @@
                 <div class="h-px bg-gray-300 flex-1"></div>
             </div>
 
-            <!-- Option 2: Copy Paste (Existing) -->
             <div class="sheet-container shadow-md flex flex-col flex-grow relative min-h-[300px]">
                 <div class="bg-gray-50 px-3 py-2 border-b border-gray-200 text-xs font-bold text-gray-600">
-                    Option 2: Paste Data (For quick checks)
+                    Step 2: Preview Data
                 </div>
-                <!-- Header Row -->
                 <div class="sheet-header">
-                    <div class="sheet-cell">RECEIVE FROM</div>
+                    <div class="sheet-cell">SOURCE</div>
                     <div class="sheet-cell">DATE</div>
-                    <div class="sheet-cell">CHALLAN</div>
+                    <div class="sheet-cell bg-orange-50 text-orange-700">CHALLAN</div>
                     <div class="sheet-cell bg-yellow-50">BARCODE</div>
                     <div class="sheet-cell bg-blue-50">NAME</div>
-                    <div class="sheet-cell">SALE PRICE</div>
+                    <div class="sheet-cell">PRICE</div>
                     <div class="sheet-cell">RQTY</div>
-                    <div class="sheet-cell">AMOUNT</div>
+                    <div class="sheet-cell">AMT</div>
                     <div class="sheet-cell bg-green-50">QTY</div>
-                    <div class="sheet-cell">BARCODE</div>
+                    <div class="sheet-cell">ALT</div>
                 </div>
 
-                <!-- Input Area -->
                 <div class="relative flex-grow bg-white overflow-hidden">
                     <textarea id="pasteArea" class="sheet-input w-full h-full" 
-                        placeholder="Paste Excel data here..."
+                        placeholder="Paste Excel data here (if not uploading file)..."
                         oninput="handleInputPreview()"></textarea>
                     
-                    <!-- Overlay when File is Uploaded to prevent confusion -->
                     <div id="fileLoadedOverlay" class="hidden-section absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-10">
                         <div class="bg-green-100 text-green-800 p-4 rounded-lg shadow text-center">
-                            <h3 class="font-bold text-lg">Excel File Loaded Successfully!</h3>
-                            <p class="text-sm mt-1">Manual pasting is disabled when file is loaded.</p>
+                            <h3 class="font-bold text-lg">File Loaded Successfully!</h3>
                             <button onclick="clearFileUpload()" class="mt-3 text-xs bg-white border border-green-300 px-3 py-1 rounded hover:bg-gray-50 text-red-500">
-                                Remove File & Enable Paste
+                                Remove & Reset
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Footer Actions -->
                 <div class="p-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
                     <div id="previewStats" class="text-xs md:text-sm font-medium text-gray-600">Waiting for data...</div>
                     <button onclick="startScanning()" id="startBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded shadow font-bold disabled:opacity-50 disabled:cursor-not-allowed transition text-sm md:text-base" disabled>
@@ -204,44 +184,71 @@
             </div>
         </div>
 
-        <!-- STEP 2: SCANNING INTERFACE (Hidden Initially) -->
         <div id="scanSection" class="hidden-section flex flex-col h-full">
-            <!-- Same Scanning UI as before -->
-            <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-4 flex flex-col md:flex-row gap-4 items-center sticky top-0 z-10">
-                <div class="w-full md:w-3/5">
-                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wide">Scan Barcode</label>
-                    <div class="relative mt-1">
-                        <input type="text" id="scanInput" class="w-full text-2xl font-mono p-3 border-2 border-blue-400 rounded-lg shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-100 transition" placeholder="..." autocomplete="off">
-                        <div class="absolute right-3 top-3 text-gray-400" onclick="document.getElementById('scanInput').focus()">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+            
+            <div class="bg-white p-3 rounded-lg shadow-md border border-gray-200 mb-3 sticky top-0 z-30 space-y-3">
+                
+                <div class="flex flex-col md:flex-row gap-2">
+                    <div class="w-full md:w-1/3 relative z-40">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wide block mb-1">Search & Select Challan</label>
+                        
+                        <div class="relative" id="dropdownTrigger">
+                            <input type="text" id="challanSearchInput" 
+                                class="w-full border-2 border-gray-300 rounded-lg bg-white text-sm p-2.5 pr-8 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-bold text-gray-700 shadow-sm transition"
+                                placeholder="Search (e.g. 896)..."
+                                autocomplete="off"
+                                onfocus="openDropdown()"
+                                onkeyup="filterDropdownOptions()"
+                            >
+                            <div class="absolute right-3 top-3 text-gray-400 pointer-events-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        <div id="challanDropdownList" class="hidden-section absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto custom-scrollbar z-50">
+                            </div>
+                    </div>
+
+                    <div class="w-full md:w-2/3 relative z-10">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wide block mb-1">Scan Barcode</label>
+                        <div class="relative">
+                            <input type="text" id="scanInput" class="w-full text-lg font-mono p-2 border-2 border-blue-400 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200 transition" placeholder="Scan here..." autocomplete="off">
+                            <div class="absolute right-2 top-2 text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                            </div>
                         </div>
                     </div>
-                    <div id="lastScanMsg" class="h-6 mt-1 text-sm font-semibold text-gray-600 truncate">Ready...</div>
                 </div>
 
-                <div class="w-full md:w-2/5 flex gap-2">
-                    <div class="flex-1 bg-blue-50 p-2 rounded text-center border border-blue-100">
-                        <div class="text-[10px] md:text-xs text-blue-600 font-bold uppercase">Total</div>
-                        <div class="text-xl md:text-2xl font-bold text-blue-800" id="statTotal">0</div>
-                    </div>
-                    <div class="flex-1 bg-green-50 p-2 rounded text-center border border-green-100">
-                        <div class="text-[10px] md:text-xs text-green-600 font-bold uppercase">Scanned</div>
-                        <div class="text-xl md:text-2xl font-bold text-green-700" id="statScanned">0</div>
-                    </div>
-                    <div class="flex-1 bg-red-50 p-2 rounded text-center border border-red-100">
-                        <div class="text-[10px] md:text-xs text-red-600 font-bold uppercase">Pending</div>
-                        <div class="text-xl md:text-2xl font-bold text-red-700" id="statPending">0</div>
+                <div class="flex flex-col md:flex-row gap-3 justify-between items-end md:items-center border-t pt-2 border-gray-100 relative z-0">
+                    <div id="lastScanMsg" class="h-5 text-sm font-semibold text-gray-600 truncate w-full md:w-auto">Ready...</div>
+                    
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <div class="flex-1 md:w-24 bg-blue-50 p-1.5 rounded text-center border border-blue-100">
+                            <div class="text-[9px] text-blue-600 font-bold uppercase">Total</div>
+                            <div class="text-lg font-bold text-blue-800" id="statTotal">0</div>
+                        </div>
+                        <div class="flex-1 md:w-24 bg-green-50 p-1.5 rounded text-center border border-green-100">
+                            <div class="text-[9px] text-green-600 font-bold uppercase">Done</div>
+                            <div class="text-lg font-bold text-green-700" id="statScanned">0</div>
+                        </div>
+                        <div class="flex-1 md:w-24 bg-red-50 p-1.5 rounded text-center border border-red-100">
+                            <div class="text-[9px] text-red-600 font-bold uppercase">Left</div>
+                            <div class="text-lg font-bold text-red-700" id="statPending">0</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white border border-gray-200 rounded-lg shadow-sm flex-grow overflow-hidden flex flex-col">
+            <div class="bg-white border border-gray-200 rounded-lg shadow-sm flex-grow overflow-hidden flex flex-col relative z-0">
                 <div class="overflow-x-auto overflow-y-auto h-full">
                     <table class="w-full text-left border-collapse">
-                        <thead class="bg-gray-100 sticky top-0 z-0">
+                        <thead class="bg-gray-100 sticky top-0 z-10 shadow-sm">
                             <tr>
-                                <th class="p-3 text-xs font-bold text-gray-500 uppercase border-b">Product</th>
-                                <th class="p-3 text-xs font-bold text-gray-500 uppercase border-b hidden md:table-cell">Codes</th>
+                                <th class="p-3 text-xs font-bold text-gray-500 uppercase border-b">Product Info</th>
+                                <th class="p-3 text-xs font-bold text-gray-500 uppercase border-b hidden md:table-cell">Challan</th>
                                 <th class="p-3 text-center text-xs font-bold text-gray-500 uppercase border-b">Tgt</th>
                                 <th class="p-3 text-center text-xs font-bold text-gray-500 uppercase border-b">Scan</th>
                                 <th class="p-3 text-center text-xs font-bold text-gray-500 uppercase border-b">Stat</th>
@@ -253,18 +260,17 @@
             </div>
             
             <button onclick="backToSetup()" class="mt-2 text-xs text-gray-500 hover:text-gray-800 self-center underline pb-2">
-                Go back to Data Entry
+                Change File / Data
             </button>
         </div>
 
     </main>
 
-    <!-- Modal -->
     <div id="resetModal" class="hidden-section fixed inset-0 z-50 flex items-center justify-center modal-overlay p-4">
         <div class="bg-white rounded-lg shadow-2xl w-full max-w-sm p-6">
             <div class="flex flex-col items-center text-center">
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Reset Data?</h3>
-                <p class="text-gray-500 text-sm mb-6">Are you sure? All progress will be lost.</p>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Reset All?</h3>
+                <p class="text-gray-500 text-sm mb-6">This will clear loaded data and progress.</p>
                 <div class="flex gap-3 w-full">
                     <button onclick="closeResetModal()" class="flex-1 bg-gray-100 py-2.5 rounded font-semibold">Cancel</button>
                     <button onclick="confirmReset()" class="flex-1 bg-red-600 text-white py-2.5 rounded font-semibold">Yes, Reset</button>
@@ -274,24 +280,7 @@
     </div>
 
     <script>
-        // PWA Setup
-        const manifestData = {
-            "name": "Warehouse Scanner", "short_name": "Scanner", "start_url": ".", "display": "standalone",
-            "background_color": "#ffffff", "theme_color": "#166534", "orientation": "portrait",
-            "icons": [{"src": "https://cdn-icons-png.flaticon.com/512/2402/2402229.png", "sizes": "192x192", "type": "image/png"}]
-        };
-        document.querySelector('#my-manifest').setAttribute('href', URL.createObjectURL(new Blob([JSON.stringify(manifestData)], {type: 'application/json'})));
-
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault(); deferredPrompt = e;
-            document.getElementById('installAppBtn').classList.remove('hidden-section');
-        });
-        async function installPWA() {
-            if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; document.getElementById('installAppBtn').classList.add('hidden-section'); }
-        }
-
-        // App Logic
+        // Audio Setup
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function beep(isSuccess) {
             if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -305,20 +294,23 @@
             osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         }
 
+        // Data Variables
         let parsedProducts = [];
-        let barcodeIndexMap = {};
-        
-        // This variable will hold rows from Excel OR Textarea
+        let barcodeMap = {}; 
         let globalRowData = null; 
+        let currentChallanFilter = "ALL";
+        let uniqueChallans = new Set();
+        let sortedChallanList = [];
 
-        // Column Indices
+        // Columns Map
+        const COL_CHALLAN = 2; // Column C
         const COL_BARCODE_MAIN = 3;
         const COL_NAME = 4;
         const COL_CODE_ALT1 = 5;
         const COL_CODE_ALT2 = 6;
         const COL_QTY = 8;
 
-        // --- NEW: Excel File Handling ---
+        // --- FILE HANDLING ---
         function handleFileUpload(input) {
             const file = input.files[0];
             if(!file) return;
@@ -331,24 +323,14 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                
-                // Convert to Array of Arrays (mimics the structure of split('\t'))
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
-                
-                // Store in global variable
-                globalRowData = jsonData;
+                globalRowData = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
 
-                // UI Updates
-                document.getElementById('uploadText').innerHTML = `<p class="text-green-600 font-bold">✔ ${file.name}</p><p class="text-xs text-gray-600">${jsonData.length} rows loaded</p>`;
+                document.getElementById('uploadText').innerHTML = `<p class="text-green-600 font-bold">✔ ${file.name}</p><p class="text-xs text-gray-600">${globalRowData.length} rows loaded</p>`;
                 document.getElementById('uploadText').classList.remove('hidden-section');
                 document.getElementById('uploadSpinner').classList.add('hidden-section');
-                
-                // Disable Paste Area
                 document.getElementById('fileLoadedOverlay').classList.remove('hidden-section');
-                
-                // Enable Start Button
                 document.getElementById('startBtn').disabled = false;
-                document.getElementById('previewStats').innerText = `Ready to import ${jsonData.length} rows from file.`;
+                document.getElementById('previewStats').innerText = `Ready: ${globalRowData.length} rows.`;
                 document.getElementById('previewStats').className = "text-sm font-bold text-green-600";
             };
             reader.readAsArrayBuffer(file);
@@ -358,52 +340,56 @@
             document.getElementById('excelFile').value = '';
             globalRowData = null;
             document.getElementById('fileLoadedOverlay').classList.add('hidden-section');
-            document.getElementById('uploadText').innerHTML = `<p class="text-blue-600 font-semibold">Click to select Excel file</p><p class="text-xs text-gray-500 mt-1">.xlsx or .xls files supported</p>`;
+            document.getElementById('uploadText').innerHTML = `<p class="text-blue-600 font-semibold">Click to select Excel file</p><p class="text-xs text-gray-500 mt-1">.xlsx or .xls</p>`;
             document.getElementById('startBtn').disabled = true;
             document.getElementById('previewStats').innerText = "Waiting for data...";
-            document.getElementById('previewStats').className = "text-sm font-medium text-gray-600";
         }
 
-        // --- Existing: Textarea Handling ---
         function handleInputPreview() {
             const raw = document.getElementById('pasteArea').value;
             const rows = raw.split('\n');
             if (rows.length > 1) {
-                // If textarea is used, globalRowData is derived from it later
                 globalRowData = null; 
                 document.getElementById('startBtn').disabled = false;
                 document.getElementById('previewStats').innerText = `Detected ${rows.length} rows (Text).`;
-                document.getElementById('previewStats').className = "text-sm font-bold text-green-600";
             } else {
                 document.getElementById('startBtn').disabled = true;
-                document.getElementById('previewStats').innerText = "Waiting for data...";
-                document.getElementById('previewStats').className = "text-sm font-medium text-gray-600";
             }
         }
 
+        // --- PROCESSING DATA ---
         function startScanning() {
             let dataRows = [];
-
-            // Determine Source: File or Textarea
             if (globalRowData) {
-                dataRows = globalRowData; // From Excel
+                dataRows = globalRowData;
             } else {
-                // From Textarea
                 const raw = document.getElementById('pasteArea').value;
                 if(!raw) return;
-                // Textarea rows need splitting by tab to match Excel array format
                 dataRows = raw.split('\n').map(row => row.split('\t'));
             }
 
             const tempMap = {};
-            let skipped = 0;
+            uniqueChallans = new Set();
+            parsedProducts = [];
+            barcodeMap = {};
+
+            // AUTO FILL DOWN LOGIC
+            let lastKnownChallan = "No Challan";
 
             dataRows.forEach((cols, idx) => {
-                // Excel JSON might result in empty rows or limited cols
-                if(!cols || cols.length <= COL_NAME) { skipped++; return; }
+                if(!cols || cols.length <= COL_NAME) return;
+
+                let cellChallan = cols[COL_CHALLAN]?.toString().trim() || "";
+                if(cellChallan !== "") {
+                    lastKnownChallan = cellChallan;
+                }
+                let finalChallan = lastKnownChallan;
 
                 const name = cols[COL_NAME]?.toString().trim();
                 let mainCode = cols[COL_BARCODE_MAIN]?.toString().trim();
+                
+                if(!name || name === "NAME" || name.includes("Challan Total")) return;
+
                 const alt1 = cols[COL_CODE_ALT1]?.toString().trim();
                 const alt2 = cols[COL_CODE_ALT2]?.toString().trim();
                 
@@ -411,14 +397,14 @@
                 let qty = parseFloat(qtyStr.replace(/,/g, ''));
                 if(isNaN(qty)) qty = 1;
 
-                if(!name || name === "NAME" || name.includes("Challan Total")) return;
+                uniqueChallans.add(finalChallan);
 
                 let codes = [];
                 if(mainCode) codes.push(mainCode);
                 if(alt1) codes.push(alt1);
                 if(alt2) codes.push(alt2);
 
-                const key = name.toUpperCase();
+                const key = name.toUpperCase() + "_||_" + finalChallan.toUpperCase();
 
                 if(tempMap[key]) {
                     tempMap[key].targetQty += qty;
@@ -428,10 +414,10 @@
                 } else {
                     tempMap[key] = {
                         name: name,
+                        challan: finalChallan,
                         codes: codes,
                         targetQty: qty,
-                        scannedQty: 0,
-                        status: 'missing'
+                        scannedQty: 0
                     };
                 }
             });
@@ -439,33 +425,123 @@
             parsedProducts = Object.values(tempMap);
 
             if(parsedProducts.length === 0) {
-                alert("No valid products found! Please check columns.");
+                alert("No valid data found! Check file format.");
                 return;
             }
 
-            barcodeIndexMap = {};
+            // Build Index Map
             parsedProducts.forEach((p, idx) => {
                 p.codes.forEach(c => {
-                    barcodeIndexMap[c.toUpperCase()] = idx;
+                    const cleanCode = c.toUpperCase();
+                    if(!barcodeMap[cleanCode]) barcodeMap[cleanCode] = [];
+                    barcodeMap[cleanCode].push(idx);
                 });
             });
 
-            renderScanTable();
-            
+            // Initialize UI
+            setupChallanDropdown();
+            selectChallan("ALL");
+
             document.getElementById('setupSection').classList.add('hidden-section');
             document.getElementById('scanSection').classList.remove('hidden-section');
             setTimeout(() => document.getElementById('scanInput').focus(), 200);
         }
 
+        // --- CUSTOM DROPDOWN LOGIC ---
+        function setupChallanDropdown() {
+            // Sort challans
+            sortedChallanList = Array.from(uniqueChallans).sort();
+            renderDropdownItems(sortedChallanList);
+        }
+
+        function renderDropdownItems(list) {
+            const dropdownListEl = document.getElementById('challanDropdownList');
+            dropdownListEl.innerHTML = '';
+
+            // Add "All Challans" Option ALWAYS at top if searching ALL
+            if (list.length === sortedChallanList.length) {
+                const allDiv = document.createElement('div');
+                allDiv.className = "px-4 py-2 hover:bg-blue-50 cursor-pointer font-bold text-blue-600 border-b border-gray-100";
+                allDiv.innerText = "All Challans";
+                allDiv.onclick = () => selectChallan("ALL");
+                dropdownListEl.appendChild(allDiv);
+            }
+
+            if(list.length === 0) {
+                const noRes = document.createElement('div');
+                noRes.className = "px-4 py-3 text-gray-400 text-xs italic text-center";
+                noRes.innerText = "No challan found";
+                dropdownListEl.appendChild(noRes);
+                return;
+            }
+
+            list.forEach(ch => {
+                const div = document.createElement('div');
+                div.className = "px-4 py-2 hover:bg-gray-50 cursor-pointer text-gray-700 text-sm border-b border-gray-50 last:border-0 truncate";
+                div.innerText = ch;
+                div.onclick = () => selectChallan(ch);
+                dropdownListEl.appendChild(div);
+            });
+        }
+
+        function openDropdown() {
+            document.getElementById('challanDropdownList').classList.remove('hidden-section');
+        }
+
+        function closeDropdownOnClick(event) {
+            const dropdown = document.getElementById('challanDropdownList');
+            const trigger = document.getElementById('dropdownTrigger');
+            // If click is outside the dropdown trigger and list, close it
+            if (!trigger.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden-section');
+            }
+        }
+
+        function filterDropdownOptions() {
+            const input = document.getElementById('challanSearchInput');
+            const val = input.value.trim().toLowerCase();
+            
+            if(val === "") {
+                renderDropdownItems(sortedChallanList);
+            } else {
+                const filtered = sortedChallanList.filter(ch => ch.toLowerCase().includes(val));
+                renderDropdownItems(filtered);
+            }
+            openDropdown();
+        }
+
+        function selectChallan(val) {
+            currentChallanFilter = val;
+            const input = document.getElementById('challanSearchInput');
+            
+            if(val === "ALL") {
+                input.value = "";
+                input.placeholder = "All Challans (Type to search)";
+            } else {
+                input.value = val;
+            }
+            
+            document.getElementById('challanDropdownList').classList.add('hidden-section');
+            renderScanTable();
+            document.getElementById('scanInput').focus();
+        }
+
+        // --- RENDER TABLE ---
         function renderScanTable() {
             const tbody = document.getElementById('scanTableBody');
             tbody.innerHTML = '';
             
             let tQty = 0, sQty = 0;
+            let visibleCount = 0;
 
             parsedProducts.forEach((p, idx) => {
+                if (currentChallanFilter !== "ALL" && p.challan !== currentChallanFilter) {
+                    return;
+                }
+
                 tQty += p.targetQty;
                 sQty += p.scannedQty;
+                visibleCount++;
 
                 let badge = '', rowClass = '';
                 const diff = p.targetQty - p.scannedQty;
@@ -485,15 +561,15 @@
                 }
 
                 const tr = document.createElement('tr');
-                tr.className = `border-b group hover:bg-gray-50 transition ${rowClass}`;
+                tr.className = `border-b group hover:bg-gray-50 ${rowClass}`;
                 tr.id = `prod-${idx}`;
                 tr.innerHTML = `
                     <td class="p-3">
                         <div class="font-bold text-gray-800 text-sm">${p.name}</div>
-                        <div class="md:hidden text-[10px] text-gray-400 font-mono mt-1 truncate max-w-[120px]">${p.codes.join(', ')}</div>
+                        <div class="text-[10px] text-gray-400 mt-1 truncate max-w-[150px]">${p.codes[0] || ''}</div>
                     </td>
-                    <td class="p-3 text-xs font-mono text-gray-500 break-all max-w-[150px] hidden md:table-cell">
-                        ${p.codes.join(', ')}
+                    <td class="p-3 text-xs text-gray-500 hidden md:table-cell font-mono">
+                        <span class="bg-gray-100 px-1 py-0.5 rounded">${p.challan}</span>
                     </td>
                     <td class="p-3 text-center font-bold text-gray-600">${p.targetQty}</td>
                     <td class="p-3 text-center">
@@ -509,8 +585,13 @@
             document.getElementById('statTotal').innerText = tQty;
             document.getElementById('statScanned').innerText = sQty;
             document.getElementById('statPending').innerText = tQty - sQty;
+
+            if(visibleCount === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-400 italic">No products found for this filter</td></tr>';
+            }
         }
 
+        // --- SCANNING ---
         const scanInput = document.getElementById('scanInput');
         scanInput.addEventListener('keydown', (e) => {
             if(e.key === 'Enter') {
@@ -520,30 +601,44 @@
             }
         });
 
-        document.body.addEventListener('click', (e) => {
-            if(!document.getElementById('scanSection').classList.contains('hidden-section') && 
-               !document.getElementById('resetModal').classList.contains('hidden-section') && 
-               e.target.tagName !== 'BUTTON' && e.target.type !== 'file') {
-                scanInput.focus();
-            }
-        });
-
         function processScan(code) {
-            const idx = barcodeIndexMap[code];
+            const indices = barcodeMap[code];
             const msgEl = document.getElementById('lastScanMsg');
-            if(idx !== undefined) {
-                const prod = parsedProducts[idx];
+
+            if(!indices || indices.length === 0) {
+                beep(false);
+                msgEl.innerHTML = `<span class="text-red-600">✖ Unknown Code: ${code}</span>`;
+                return;
+            }
+
+            let matchedIndex = -1;
+
+            if (currentChallanFilter !== "ALL") {
+                matchedIndex = indices.find(idx => parsedProducts[idx].challan === currentChallanFilter);
+                if (matchedIndex === undefined) {
+                    beep(false);
+                    msgEl.innerHTML = `<span class="text-orange-600">⚠ Not in selected Challan</span>`;
+                    return;
+                }
+            } else {
+                matchedIndex = indices.find(idx => parsedProducts[idx].scannedQty < parsedProducts[idx].targetQty);
+                if (matchedIndex === undefined) matchedIndex = indices[0];
+            }
+
+            if (matchedIndex !== undefined && matchedIndex !== -1) {
+                const prod = parsedProducts[matchedIndex];
                 prod.scannedQty++;
                 beep(true);
                 msgEl.innerHTML = `<span class="text-green-600">✔ Found: ${prod.name}</span>`;
+                
                 renderScanTable();
-                const row = document.getElementById(`prod-${idx}`);
-                row.scrollIntoView({behavior: 'smooth', block: 'center'});
-                row.classList.add('brightness-95'); 
-                setTimeout(() => row.classList.remove('brightness-95'), 500);
-            } else {
-                beep(false);
-                msgEl.innerHTML = `<span class="text-red-600">✖ Unknown Code: ${code}</span>`;
+                
+                const row = document.getElementById(`prod-${matchedIndex}`);
+                if(row) {
+                    row.scrollIntoView({behavior: 'smooth', block: 'center'});
+                    row.classList.add('row-highlight');
+                    setTimeout(() => row.classList.remove('row-highlight'), 1000);
+                }
             }
         }
 
